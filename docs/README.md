@@ -1,4 +1,6 @@
-# Post-HCT Survival Data Analysis
+# Post-hematopoietic cell transplantation (Post-HCT) Survival Prediction
+
+**Documentation:** See the `docs/` folder for project documentation: [docs/README.md](docs/README.md)
 
 Predicting individualized survival risk scores for patients following Hematopoietic Cell Transplantation (HCT) using the CIBMTR dataset.
 
@@ -52,9 +54,9 @@ The model performance is evaluated using the **Concordance Index (C-index)**, wh
 ### 1. **Installation**
 Ensure you have the necessary libraries installed:
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
-###2. **Run**: Execute `post_hct.ipynb` in Jupyter or Google Colab.
+###2. **Run**: Execute `post_hct.ipynb`.
 
 ## License & Data Usage
 
