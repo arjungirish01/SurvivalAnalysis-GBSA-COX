@@ -24,7 +24,7 @@ This repository contains resources and a Jupyter notebook for (POST-HCT). The ma
 
 ```bash
 python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1    # on Windows PowerShell
+.\\.venv\\Scripts\\Activate.ps1 # Windows powershell
 pip install -r requirements.txt
 ```
 
@@ -40,4 +40,9 @@ Open `post_hct.ipynb` and run cells sequentially. The notebook reads `train.csv`
 
 ## Contact
 
-Repository maintainer: Arjun
+Repository maintainers: 
+Arjun Girish (arjun.girish@hof-university.de)
+Bhavya Rajiv Jhaveri (bhavya.jhaveri@hof-university.de)
+Rahul Molla (rahul.molla@hof-university.de)
+Amish Kishor Daryani(amish.daryani@hof-university.de)
+
