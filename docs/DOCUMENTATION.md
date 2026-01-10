@@ -41,8 +41,5 @@ Open `post_hct.ipynb` and run cells sequentially. The notebook reads `train.csv`
 ## Contact
 
 Repository maintainers: 
-Arjun Girish (arjun.girish@hof-university.de)
-Bhavya Rajiv Jhaveri (bhavya.jhaveri@hof-university.de)
-Rahul Molla (rahul.molla@hof-university.de)
-Amish Kishor Daryani(amish.daryani@hof-university.de)
+Arjun Girish
 

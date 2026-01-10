@@ -56,7 +56,7 @@ Ensure you have the necessary libraries installed:
 ```bash
 pip install -r requirements.txt
 ```
-###2. **Run**: Execute `post_hct.ipynb`.
+### 2. **Run**: Execute `post_hct.ipynb`.
 
 ## License & Data Usage
 
