@@ -6,7 +6,7 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from patients_db import generate_patient_records
 
-# --- 1. CONFIGURATION & STYLING ---
+#CONFIGURATION & STYLING
 st.set_page_config(
     page_title="OncoCast | Clinical Decision Support",
     layout="wide",
@@ -63,7 +63,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. LOGIC & LOADERS ---
+#LOGIC & LOADERS
 
 @st.cache_data
 def get_data():
@@ -80,7 +80,7 @@ def load_resources():
 def preprocess_input(patient_series, trained_columns):
     df = pd.DataFrame([patient_series])
     
-    # Binary Encoding
+    #Binary Encoding
     binary_cols = [
         'psych_disturb', 'diabetes', 'arrhythmia', 'vent_hist', 'renal_issue',
         'pulm_severe', 'rituximab', 'obesity', 'in_vivo_tcd', 'hepatic_severe',
@@ -91,25 +91,25 @@ def preprocess_input(patient_series, trained_columns):
         if col in df.columns:
             df[col] = df[col].apply(lambda x: 1 if str(x).lower() == 'yes' else 0)
 
-    # Imputation Defaults
+    #Imputation Defaults
     defaults = {'donor_age': 30.0, 'karnofsky_score': 90.0, 'comorbidity_score': 0.0, 'year_hct': 2018.0}
     for col, val in defaults.items():
         if col in df.columns: df[col] = df[col].fillna(val)
 
-    # One-Hot Encoding
+    #One-Hot Encoding
     cat_cols = [c for c in df.columns if df[c].dtype == 'object' and c not in binary_cols + ['first_name', 'last_name', 'picture', 'ID']]
     df = pd.get_dummies(df, columns=cat_cols)
     
-    # Alignment
+    #Alignment
     model_input = pd.DataFrame(0.0, index=[0], columns=trained_columns)
     common_cols = list(set(df.columns) & set(trained_columns))
     model_input[common_cols] = df[common_cols]
     
     return model_input.fillna(0.0)
 
-# --- 3. UI LAYOUT ---
+#UI LAYOUT
 
-# BANNER
+#BANNER
 st.markdown("""
 <div class="medical-banner">
     <div class="banner-left">
@@ -126,7 +126,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# SIDEBAR
+#SIDEBAR
 with st.sidebar:
     st.markdown("### Patient Registry")
     patients_df = get_data()
@@ -141,7 +141,7 @@ with st.sidebar:
     st.divider()
     st.caption("v2.2 | Powered by GBSA Model")
 
-# SEARCH LOGIC
+#SEARCH LOGIC
 if search_btn:
     mask = (
         (patients_df['first_name'].str.lower() == s_fname.lower()) &
@@ -155,11 +155,11 @@ if search_btn:
     else:
         st.error("Patient not found in EMR database.")
 
-# MAIN DISPLAY
+#MAIN DISPLAY
 if 'patient' in st.session_state:
     p = st.session_state['patient']
     
-    # PATIENT CARD
+    #PATIENT CARD
     col_pic, col_details = st.columns([1, 4])
     
     with col_pic:
@@ -179,7 +179,7 @@ if 'patient' in st.session_state:
         </div>
         """, unsafe_allow_html=True)
 
-    # EVALUATION
+    #EVALUATION
     st.write("")
     if st.button("Run Survival Risk Model", type="primary", use_container_width=True):
         bundle = load_resources()
@@ -195,12 +195,12 @@ if 'patient' in st.session_state:
                 st.error("Model schema missing.")
                 st.stop()
                 
-            # Predict
+            #Predict
             X_input = preprocess_input(p, cols)
             raw_risk_score = model.predict(X_input)[0]
             hazard_ratio = np.exp(raw_risk_score)
             
-            # RESULTS
+            #RESULTS
             st.markdown("### Prognostic Analysis")
             st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
             
@@ -209,13 +209,13 @@ if 'patient' in st.session_state:
             with res_c1:
                 st.markdown("##### Population Risk Stratification")
                 
-                # Synthetic Population (centered at 1.0)
+                #Synthetic Population (centered at 1.0)
                 pop_data = np.random.lognormal(mean=0.0, sigma=0.4, size=1000) 
                 
-                # Create Distplot
+                #Distplot
                 fig = ff.create_distplot([pop_data], ['Patient Population'], show_hist=False, show_rug=False, colors=['#95a5a6'])
                 
-                # Patient Line
+                #Patient Line
                 line_color = "#c0392b" if hazard_ratio > 1.2 else ("#f39c12" if hazard_ratio > 0.8 else "#27ae60")
                 
                 fig.add_shape(
@@ -223,7 +223,7 @@ if 'patient' in st.session_state:
                     line=dict(color=line_color, width=5, dash="solid")
                 )
                 
-                # Annotation
+                #Annotation
                 fig.add_annotation(
                     x=hazard_ratio, y=1.8,
                     text=f"PATIENT<br>HR: {hazard_ratio:.2f}",
@@ -231,7 +231,6 @@ if 'patient' in st.session_state:
                     bgcolor="white", bordercolor=line_color, borderwidth=1, font=dict(color=line_color, size=12, family="Arial Black")
                 )
 
-                # --- UPDATED ZONES (Clearer Colors) ---
                 fig.update_layout(
                     title_text="",
                     xaxis_title="Hazard Ratio (1.0 = Baseline)",
@@ -242,11 +241,11 @@ if 'patient' in st.session_state:
                     xaxis=dict(range=[0, 3.5], gridcolor='#f1f2f6')
                 )
                 
-                # 1. Low Risk (Green)
+                #Low Risk
                 fig.add_vrect(x0=0, x1=0.8, fillcolor="#2ecc71", opacity=0.15, layer="below", annotation_text="Low Risk", annotation_position="top left")
-                # 2. Average (Yellow/Gold)
+                #Average
                 fig.add_vrect(x0=0.8, x1=1.2, fillcolor="#f1c40f", opacity=0.15, layer="below", annotation_text="Average", annotation_position="top left")
-                # 3. High Risk (Red)
+                #High Risk
                 fig.add_vrect(x0=1.2, x1=3.5, fillcolor="#e74c3c", opacity=0.15, layer="below", annotation_text="High Risk", annotation_position="top left")
 
                 st.plotly_chart(fig, use_container_width=True)
@@ -291,11 +290,8 @@ if 'patient' in st.session_state:
                     </div>
                     """, unsafe_allow_html=True)
 
-            # --- IMPROVED FOLDER SECTION ---
             st.write("")
             st.write("")
-            
-            # Using custom markdown to style the expander header area
             st.markdown("""
             <div style="border-top: 1px solid #e0e0e0; margin-top: 20px; margin-bottom: 10px;"></div>
             """, unsafe_allow_html=True)
@@ -305,7 +301,7 @@ if 'patient' in st.session_state:
             """, unsafe_allow_html=True)
             
             with st.expander("📑 Comprehensive Clinical Record (Raw Data View)"):
-                # Updated Markdown with High Contrast Colors
+                #Markdown with High Contrast Colors
                 st.markdown("""
                 <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; border-left: 5px solid #1e40af; margin-bottom: 15px; color: #1e1e1e;">
                     <strong style="color: #172554;">ℹ️ Clinician Note:</strong> 
@@ -314,7 +310,7 @@ if 'patient' in st.session_state:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Data Processing for Display
+                #Data Processing for Display
                 raw_df = pd.DataFrame([p]).T.reset_index()
                 raw_df.columns = ["Variable Name", "Recorded Value"]
                 raw_df = raw_df[raw_df["Variable Name"] != "picture"]
