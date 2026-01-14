@@ -9,6 +9,8 @@ This repository contains resources and a Jupyter notebook for (POST-HCT). The ma
 ## Files
 
 - `post_hct.ipynb` — Primary analysis notebook.
+- `patients_db.py` — Synthetic patient database.
+- `Medical_app.p` — User Interface for Doctors.
 - `train.csv` — Main dataset used for training/analysis.
 - `data_dictionary.csv` — Column descriptions and data dictionary.
 - `requirements.txt` — Python dependencies.
@@ -32,6 +34,10 @@ pip install -r requirements.txt
 
 ```bash
 jupyter notebook post_hct.ipynb
+```
+3. Run Streamlit powered UI
+```bash
+streamlit run medical_app
 ```
 
 ## Usage

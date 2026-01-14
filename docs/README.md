@@ -58,6 +58,11 @@ pip install -r requirements.txt
 ```
 ### 2. **Run**: Execute `post_hct.ipynb`.
 
+### 3. Streamlit powered UI
+```bash
+streamlit run medical_app.py
+```
+
 ## License & Data Usage
 
 ### Code License
