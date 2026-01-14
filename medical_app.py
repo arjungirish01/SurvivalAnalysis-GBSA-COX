@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import matplotlib.pyplot as plt
+import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from patients_db import generate_patient_records
 
+# --- 1. CONFIGURATION & STYLING ---
 st.set_page_config(
     page_title="OncoCast | Clinical Decision Support",
     layout="wide",
@@ -15,119 +16,54 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* MAIN BACKGROUND - Soft Clinical Gray */
-    .stApp {
-        background-color: #f8f9fa;
-    }
+    /* MAIN BACKGROUND */
+    .stApp { background-color: #f8f9fa; }
     
-    /* --- NEW BANNER DESIGN --- */
+    /* BANNER DESIGN */
     .medical-banner {
         background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
         padding: 20px 30px;
         border-radius: 0 0 20px 20px;
-        margin-top: -60px; /* Pulls banner to top edge */
+        margin-top: -60px;
         margin-bottom: 30px;
         box-shadow: 0 10px 20px rgba(0,0,0,0.15);
         color: white;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        display: flex; align-items: center; justify-content: space-between;
     }
-    
-    .banner-left {
-        display: flex;
-        align-items: center;
-        gap: 20px;
+    .banner-left { display: flex; align-items: center; gap: 20px; }
+    .banner-icon { 
+        font-size: 3.5rem; 
+        background: linear-gradient(135deg, #00b09b, #96c93d); 
+        -webkit-background-clip: text; 
+        -webkit-text-fill-color: transparent; 
     }
-    
-    .banner-icon {
-        font-size: 3.5rem;
-        background: linear-gradient(135deg, #00b09b, #96c93d); /* Snake Green Gradient */
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    }
-    
-    .banner-text h1 {
-        margin: 0;
-        font-family: 'Helvetica Neue', sans-serif;
-        font-weight: 700;
-        font-size: 2.2rem;
-        color: #ffffff;
-        letter-spacing: 1px;
-    }
-    
-    .banner-text p {
-        margin: 0;
-        color: #bdc3c7;
-        font-size: 0.95rem;
-        font-weight: 300;
-        letter-spacing: 0.5px;
-    }
-    
-    .banner-right {
-        text-align: right;
-        display: none; /* Hidden on small screens */
-    }
-    
-    @media (min-width: 800px) {
-        .banner-right { display: block; }
-    }
-    
-    .hospital-badge {
-        background-color: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
-        padding: 5px 15px;
-        border-radius: 30px;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #ecf0f1;
+    .banner-text h1 { margin: 0; font-family: 'Helvetica Neue', sans-serif; font-size: 2.2rem; color: #fff; }
+    .hospital-badge { 
+        background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); 
+        padding: 5px 15px; border-radius: 30px; font-size: 0.8rem; text-transform: uppercase; color: #ecf0f1; 
     }
 
-    /* --- PATIENT CARD --- */
+    /* PATIENT CARD */
     .patient-card {
-        background-color: white;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border-top: 5px solid #3498db;
+        background-color: white; padding: 25px; border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid #3498db;
     }
-    .patient-name {
-        color: #2c3e50;
-        font-size: 26px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-    .patient-meta {
-        color: #7f8c8d;
-        font-size: 15px;
-        margin-bottom: 5px;
-    }
-    .status-badge {
-        display: inline-block;
-        background-color: #e8f8f5;
-        color: #27ae60;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 600;
-        margin-top: 10px;
+    .patient-name { color: #2c3e50; font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+    .patient-meta { color: #7f8c8d; font-size: 15px; margin-bottom: 5px; }
+    .status-badge { 
+        display: inline-block; background-color: #e8f8f5; color: #27ae60; 
+        padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-top: 10px; 
     }
 
-    /* --- METRICS --- */
+    /* METRICS */
     .metric-box {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #edf2f7;
-        text-align: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        background: white; padding: 20px; border-radius: 12px;
+        border: 1px solid #edf2f7; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
     }
 </style>
 """, unsafe_allow_html=True)
 
-#LOGIC & LOADER
+# --- 2. LOGIC & LOADERS ---
 
 @st.cache_data
 def get_data():
@@ -144,7 +80,7 @@ def load_resources():
 def preprocess_input(patient_series, trained_columns):
     df = pd.DataFrame([patient_series])
     
-    #Binary Encoding
+    # Binary Encoding
     binary_cols = [
         'psych_disturb', 'diabetes', 'arrhythmia', 'vent_hist', 'renal_issue',
         'pulm_severe', 'rituximab', 'obesity', 'in_vivo_tcd', 'hepatic_severe',
@@ -155,24 +91,25 @@ def preprocess_input(patient_series, trained_columns):
         if col in df.columns:
             df[col] = df[col].apply(lambda x: 1 if str(x).lower() == 'yes' else 0)
 
-    #Imputation Defaults
+    # Imputation Defaults
     defaults = {'donor_age': 30.0, 'karnofsky_score': 90.0, 'comorbidity_score': 0.0, 'year_hct': 2018.0}
     for col, val in defaults.items():
         if col in df.columns: df[col] = df[col].fillna(val)
 
-    #One-Hot Encoding
+    # One-Hot Encoding
     cat_cols = [c for c in df.columns if df[c].dtype == 'object' and c not in binary_cols + ['first_name', 'last_name', 'picture', 'ID']]
     df = pd.get_dummies(df, columns=cat_cols)
     
-    #Alignment
+    # Alignment
     model_input = pd.DataFrame(0.0, index=[0], columns=trained_columns)
     common_cols = list(set(df.columns) & set(trained_columns))
     model_input[common_cols] = df[common_cols]
     
-    #Safety Net
     return model_input.fillna(0.0)
 
-#UI LAYOUT
+# --- 3. UI LAYOUT ---
+
+# BANNER
 st.markdown("""
 <div class="medical-banner">
     <div class="banner-left">
@@ -189,7 +126,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-#Sidebar
+# SIDEBAR
 with st.sidebar:
     st.markdown("### Patient Registry")
     patients_df = get_data()
@@ -202,9 +139,9 @@ with st.sidebar:
     search_btn = st.button("Retrieve Record", type="primary", use_container_width=True)
     
     st.divider()
-    st.caption("v2.1 | Powered by GBSA Model")
-    st.caption("Secure Connection: TLS 1.3")
-#Search Logic
+    st.caption("v2.2 | Powered by GBSA Model")
+
+# SEARCH LOGIC
 if search_btn:
     mask = (
         (patients_df['first_name'].str.lower() == s_fname.lower()) &
@@ -218,11 +155,11 @@ if search_btn:
     else:
         st.error("Patient not found in EMR database.")
 
-#Main Display
+# MAIN DISPLAY
 if 'patient' in st.session_state:
     p = st.session_state['patient']
     
-    #PATIENT CARD
+    # PATIENT CARD
     col_pic, col_details = st.columns([1, 4])
     
     with col_pic:
@@ -242,7 +179,7 @@ if 'patient' in st.session_state:
         </div>
         """, unsafe_allow_html=True)
 
-    #EVALUATION
+    # EVALUATION
     st.write("")
     if st.button("Run Survival Risk Model", type="primary", use_container_width=True):
         bundle = load_resources()
@@ -258,84 +195,73 @@ if 'patient' in st.session_state:
                 st.error("Model schema missing.")
                 st.stop()
                 
+            # Predict
             X_input = preprocess_input(p, cols)
-            risk_score = model.predict(X_input)[0]
-            surv_funcs = model.predict_survival_function(X_input)
+            raw_risk_score = model.predict(X_input)[0]
+            hazard_ratio = np.exp(raw_risk_score)
             
-            #RESULTS
+            # RESULTS
             st.markdown("### Prognostic Analysis")
             st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
             
             res_c1, res_c2 = st.columns([2, 1])
             
             with res_c1:
-                fn = surv_funcs[0]
-                times = fn.x
-                probs = fn.y
-            
-                baseline_probs = np.exp(-0.0008 * times)
+                st.markdown("##### Population Risk Stratification")
                 
-                fig = go.Figure()
-
-                #Population Baseline
-                fig.add_trace(go.Scatter(
-                    x=times, y=baseline_probs,
-                    mode='lines',
-                    name='Population Avg.',
-                    line=dict(color='#b2bec3', width=2, dash='dash'),
-                    hoverinfo='skip'
-                ))
-
-                #Patient Specific Curve
-                fig.add_trace(go.Scatter(
-                    x=times, y=probs,
-                    mode='lines',
-                    name=f"{p['last_name']}, {p['first_name']}",
-                    line=dict(shape='hv', color='#0984e3', width=3), 
-                    fill='tozeroy',
-                    fillcolor='rgba(9, 132, 227, 0.1)'
-                ))
-
-                #Layout Styling
-                fig.update_layout(
-                    title="<b>Survival Projection vs. Baseline</b>",
-                    title_font=dict(size=16, color='#2d3436'),
-                    xaxis_title="Days Post-Transplant",
-                    yaxis_title="Survival Probability",
-                    yaxis=dict(range=[0, 1.05], gridcolor='#dfe6e9'),
-                    xaxis=dict(gridcolor='#dfe6e9'),
-                    plot_bgcolor='white',
-                    margin=dict(l=20, r=20, t=40, b=20),
-                    hovermode="x unified", # Shows all data points at that x-value
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                # Synthetic Population (centered at 1.0)
+                pop_data = np.random.lognormal(mean=0.0, sigma=0.4, size=1000) 
+                
+                # Create Distplot
+                fig = ff.create_distplot([pop_data], ['Patient Population'], show_hist=False, show_rug=False, colors=['#95a5a6'])
+                
+                # Patient Line
+                line_color = "#c0392b" if hazard_ratio > 1.2 else ("#f39c12" if hazard_ratio > 0.8 else "#27ae60")
+                
+                fig.add_shape(
+                    type="line", x0=hazard_ratio, y0=0, x1=hazard_ratio, y1=2.0,
+                    line=dict(color=line_color, width=5, dash="solid")
                 )
                 
-                one_year_idx = (np.abs(times - 365)).argmin()
-                one_year_prob = probs[one_year_idx]
-                
+                # Annotation
                 fig.add_annotation(
-                    x=times[one_year_idx], y=one_year_prob,
-                    text=f"1-Year: {one_year_prob:.0%}",
-                    showarrow=True, arrowhead=1,
-                    ax=0, ay=-40,
-                    bgcolor="#2d3436", font=dict(color="white", size=10)
+                    x=hazard_ratio, y=1.8,
+                    text=f"PATIENT<br>HR: {hazard_ratio:.2f}",
+                    showarrow=True, arrowhead=2, ax=40, ay=-20,
+                    bgcolor="white", bordercolor=line_color, borderwidth=1, font=dict(color=line_color, size=12, family="Arial Black")
                 )
+
+                # --- UPDATED ZONES (Clearer Colors) ---
+                fig.update_layout(
+                    title_text="",
+                    xaxis_title="Hazard Ratio (1.0 = Baseline)",
+                    yaxis_visible=False,
+                    showlegend=False,
+                    margin=dict(l=10, r=10, t=10, b=30),
+                    height=350,
+                    xaxis=dict(range=[0, 3.5], gridcolor='#f1f2f6')
+                )
+                
+                # 1. Low Risk (Green)
+                fig.add_vrect(x0=0, x1=0.8, fillcolor="#2ecc71", opacity=0.15, layer="below", annotation_text="Low Risk", annotation_position="top left")
+                # 2. Average (Yellow/Gold)
+                fig.add_vrect(x0=0.8, x1=1.2, fillcolor="#f1c40f", opacity=0.15, layer="below", annotation_text="Average", annotation_position="top left")
+                # 3. High Risk (Red)
+                fig.add_vrect(x0=1.2, x1=3.5, fillcolor="#e74c3c", opacity=0.15, layer="below", annotation_text="High Risk", annotation_position="top left")
 
                 st.plotly_chart(fig, use_container_width=True)
             
             with res_c2:
-                #Hazard Metric
                 st.markdown(f"""
                 <div class="metric-box">
                     <div style="color:#7f8c8d; font-size:0.9rem; text-transform:uppercase;">Hazard Ratio</div>
-                    <div style="color:#2d3436; font-size:2.2rem; font-weight:bold;">{risk_score:.3f}</div>
-                    <div style="font-size:0.8rem; color:#b2bec3;">vs Population Baseline</div>
+                    <div style="color:#2d3436; font-size:2.2rem; font-weight:bold;">{hazard_ratio:.2f}</div>
+                    <div style="font-size:0.8rem; color:#b2bec3;">(1.0 = Average Risk)</div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.markdown("<h5 style='margin-top:20px; color:#2c3e50;'>Primary Risk Drivers</h5>", unsafe_allow_html=True)
+                st.markdown("<h5 style='margin-top:20px; color:#2c3e50;'>Top Contributing Factors</h5>", unsafe_allow_html=True)
                 
-                #Factors
                 importances = model.feature_importances_
                 indices = np.argsort(importances)[::-1][:4]
                 
@@ -344,15 +270,10 @@ if 'patient' in st.session_state:
                     score = importances[idx]
                     
                     display = feat.replace('_', ' ').title().replace("Score", "")
-                    
-                    #Remove "Nan", "N/A", "Na" explicitly
-                    garbage_terms = [" Nan", " N/A", " Na", "Nan", "N/A"]
-                    for term in garbage_terms:
+                    for term in [" Nan", " N/A", " Na", "Nan", "N/A"]:
                         display = display.replace(term, "")
+                    display = display.strip()
                     
-                    display = display.strip() # Remove trailing spaces
-                    
-                    #Value Lookup
                     raw_val = "N/A"
                     key_attempt = feat.split('_')[0]
                     if feat in p: raw_val = p[feat]
@@ -370,8 +291,55 @@ if 'patient' in st.session_state:
                     </div>
                     """, unsafe_allow_html=True)
 
+            # --- IMPROVED FOLDER SECTION ---
+            st.write("")
+            st.write("")
+            
+            # Using custom markdown to style the expander header area
+            st.markdown("""
+            <div style="border-top: 1px solid #e0e0e0; margin-top: 20px; margin-bottom: 10px;"></div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div style="border-top: 1px solid #e0e0e0; margin-top: 20px; margin-bottom: 10px;"></div>
+            """, unsafe_allow_html=True)
+            
+            with st.expander("📑 Comprehensive Clinical Record (Raw Data View)"):
+                # Updated Markdown with High Contrast Colors
+                st.markdown("""
+                <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; border-left: 5px solid #1e40af; margin-bottom: 15px; color: #1e1e1e;">
+                    <strong style="color: #172554;">ℹ️ Clinician Note:</strong> 
+                    This view displays the <strong style="color: #1e1e1e;">raw, unprocessed values</strong> from the patient registry. 
+                    These values are transformed (normalized/encoded) before being processed by the GBSA model.
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Data Processing for Display
+                raw_df = pd.DataFrame([p]).T.reset_index()
+                raw_df.columns = ["Variable Name", "Recorded Value"]
+                raw_df = raw_df[raw_df["Variable Name"] != "picture"]
+                
+                def categorize_field(name):
+                    name = name.lower()
+                    if name in ['first_name', 'last_name', 'age', 'id', 'mrn', 'dob']: return "1. Demographics"
+                    if 'score' in name: return "2. Clinical Scores"
+                    if 'hla' in name or 'match' in name: return "3. HLA / Transplant Details"
+                    if name in ['prim_disease_hct', 'graft_type', 'cmv_status']: return "4. Diagnosis & Disease"
+                    return "5. Other Clinical Indicators"
+                
+                raw_df["Section"] = raw_df["Variable Name"].apply(categorize_field)
+                raw_df = raw_df.sort_values(by=["Section", "Variable Name"])
+
+                st.dataframe(
+                    raw_df, 
+                    use_container_width=True, 
+                    height=500,
+                    hide_index=True,
+                    column_order=["Section", "Variable Name", "Recorded Value"]
+                )
+
         else:
-            st.error("Model file not found.")
+            st.error("Model file not found. Please ensure 'gbsa_model.pkl' is in the directory.")
 
 elif not search_btn:
     st.markdown("""
